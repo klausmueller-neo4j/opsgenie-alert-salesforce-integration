@@ -24,5 +24,5 @@ This service receives Opsgenie webhooks for “out of disk” alerts, enriches t
 
 ## Deployment
 
-_TODO: add your SAM/GitHub Actions/Cloud Run deploy instructions here._
+
 
