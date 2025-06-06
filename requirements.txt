@@ -1,0 +1,2 @@
+simple-salesforce
+fastapi  # if you plan to use FastAPI

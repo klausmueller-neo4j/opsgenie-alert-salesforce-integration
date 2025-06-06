@@ -1,0 +1,10 @@
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+
+# Virtualenv
+venv/
+
+# Env files
+.env
+.env.*
