@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Timeout: 30
+
+Resources:
+  OpsgenieCaseFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: src/app.handler
+      Runtime: python3.11
+      Environment:
+        Variables:
+          SF_USERNAME: !Ref SFUsername
+          SF_PASSWORD: !Ref SFPassword
+          SF_SECURITY_TOKEN: !Ref SFSecurityToken
+          SF_DOMAIN: !Ref SFDom
+      Events:
+        Webhook:
+          Type: Api
+          Properties:
+            Path: /opsgenie-alert
+            Method: post
+
+Parameters:
+  SFUsername:
+    Type: String
+    Description: Salesforce username
+  SFPassword:
+    Type: String
+    Description: Salesforce password
+  SFSecurityToken:
+    Type: String
+    Description: Salesforce security token
+  SFDom:
+    Type: String
+    Default: login
+    Description: Salesforce domain (“login” or “test”)
