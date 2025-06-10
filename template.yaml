@@ -3,7 +3,7 @@ Transform: AWS::Serverless-2016-10-31
 
 Globals:
   Function:
-    Timeout: 30
+    Timeout: 60
 
 Resources:
   OpsgenieCaseFunction:
@@ -17,6 +17,8 @@ Resources:
           SF_PASSWORD: !Ref SFPassword
           SF_SECURITY_TOKEN: !Ref SFSecurityToken
           SF_DOMAIN: !Ref SFDom
+          NEO4J_URI: !Ref Neo4jUri
+          NEO4J_TOKEN: !Ref Neo4Token
       Events:
         Webhook:
           Type: Api
@@ -38,3 +40,9 @@ Parameters:
     Type: String
     Default: login
     Description: Salesforce domain (“login” or “test”)
+  Neo4jUri:
+    Type: String
+    Description: Neo4j URI
+  Neo4jToken:
+    Type: String
+    Description: Access Token

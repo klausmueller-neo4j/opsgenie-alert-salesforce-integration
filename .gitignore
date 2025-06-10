@@ -9,3 +9,5 @@ venv/
 .env
 .env.*
 .aws-sam/
+
+src/data/
