@@ -2,3 +2,4 @@ simple-salesforce
 fastapi 
 python-dotenv
 neo4j
+cryptography==3.4.8

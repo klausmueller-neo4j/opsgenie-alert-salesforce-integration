@@ -93,7 +93,7 @@ def build_case_payload(
         "Brand__c": "Neo4j Aura",
         "Was_existing_documentation_used__c": "Yes, adding link to existing doc below",
         "Component__c": "Storage",
-        "Neo4   j_Package_Edition__c": package_edition,
+        "Neo4j_Package_Edition__c": package_edition,
         "Product_Surface__c": "Aura Console",
         "Operations__c": "Aura",
         "Admin__c": "Proactive",
@@ -106,15 +106,22 @@ def get_dbid(description: str):
     if m:
         return m.group(1)
     else:
-        return ""
+        return None
 
 
-def get_tier(desciption: str):
-    m_tier = re.search(r"Tier:\s*`([^`]+)`", desciption)
+def get_tier(description: str):
+    m_tier = re.search(r"Tier:\s*`([^`]+)`", description)
     if m_tier:
-        return m_tier.group(1).lower() if m_tier else None
+        return m_tier.group(1).lower()
     else:
-        return ""
+        return None
+    
+def get_priority(description: str):
+    m_priority = re.search(r"Priority:\s*`([^`]+)`", description)
+    if m_priority:
+            return m_priority.group(1).lower()
+    else:
+        None
 
 
 def handler(event, context):
@@ -122,16 +129,18 @@ def handler(event, context):
     logger.debug("Lambda invoked—event: %s", json.dumps(event))
 
     payload = json.loads(event.get("body", "{}"))
-    alert_descripion = payload.get("description", "")
-    tier = get_tier(alert_descripion)
-    db_id = get_dbid(alert_descripion)
-    severity = "Severity 3"
+    alert_description = payload.get("description", "")
+    tier = get_tier(alert_description)
+    dbid = get_dbid(alert_description)
+    priority = get_priority(alert_description)
+    severity = "Severity 2" if priority == "highest" else "Severity 3"
+    subject = CASE_SUBJECT.format(dbid=dbid)
 
     soql = (
         "SELECT Id "
         "FROM Case "
-        f"WHERE Subject = '{CASE_SUBJECT}' "
-        f"  AND Database_ID_DBID__c = '{db_id}' "
+        f"WHERE Subject = '{subject}' "
+        f"  AND Database_ID_DBID__c = '{dbid}' "
         "  AND Status != 'Closed' "
         "LIMIT 1"
     )
@@ -139,7 +148,7 @@ def handler(event, context):
 
     logger.debug("Salesforce query for existing case returned: %s", existing)
     if existing["totalSize"] > 0:
-        logger.info("Case already exists for dbid %s", db_id)
+        logger.info("Case already exists for dbid %s", dbid)
         return {
             "statusCode": 200,
             "body": json.dumps(
@@ -150,26 +159,26 @@ def handler(event, context):
     with driver.session(database="neo4j") as session:
         rec = session.run(
             """
-            MATCH (d:Database {key:$db_id})<-[:OWNS]-(u:User)
+            MATCH (d:Database {key:$dbid})<-[:OWNS]-(u:User)
             WITH d,u
             MATCH (d)<-[:CONTAINS]-(n:Namespace)
             RETURN u.email as email, n.salesforce_customer_project_profile_id as cpp_id
         """,
-            db_id=db_id,
+            dbid=dbid,
         ).single()
 
     if not rec:
-        logger.error("No email found for database %s", db_id)
+        logger.error("No email found for database %s", dbid)
         return {
             "statusCode": 404,
             "body": json.dumps(
-                {"status": "error", "message": f"No owner for database {db_id}"}
+                {"status": "error", "message": f"No owner for database {dbid}"}
             ),
         }
 
     email = rec["email"]
     cpp_id = rec["cpp_id"]
-    logger.info("Database %s is owned by %s", db_id, email)
+    logger.info("Database %s is owned by %s", dbid, email)
 
     # Build the Case
 
@@ -177,7 +186,7 @@ def handler(event, context):
 
     case_data = build_case_payload(
         email=email,
-        dbid=db_id,
+        dbid=dbid,
         cpp_id=cpp_id,
         severity=severity,
         package_edition=package_edition,
